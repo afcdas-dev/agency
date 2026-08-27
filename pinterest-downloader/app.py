@@ -76,6 +76,7 @@ def run_download(links: list[str], out_dir: pathlib.Path, folder: str) -> None:
         "noplaylist": True,
         "no_warnings": True,
         "quiet": True,
+        "socket_timeout": 20,
         "progress_hooks": [make_progress_hook()],
     }
 
@@ -93,34 +94,39 @@ def run_download(links: list[str], out_dir: pathlib.Path, folder: str) -> None:
             folder=folder,
         )
 
-    out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    for i, url in enumerate(links, 1):
-        with job_lock:
-            job_state["current"] = url
-            job_state["percent"] = ""
-        log(f"[{i}/{len(links)}] Baixando: {url}")
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
+        for i, url in enumerate(links, 1):
             with job_lock:
-                job_state["ok"].append(url)
-            log("  OK")
-        except Exception as e:
+                job_state["current"] = url
+                job_state["percent"] = ""
+            log(f"[{i}/{len(links)}] Baixando: {url}")
+            try:
+                with YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+                with job_lock:
+                    job_state["ok"].append(url)
+                log("  OK")
+            except Exception as e:
+                with job_lock:
+                    job_state["fail"].append(url)
+                log(f"  Falhou: {e}")
             with job_lock:
-                job_state["fail"].append(url)
-            log(f"  Falhou: {e}")
-        with job_lock:
-            job_state["done"] = i
+                job_state["done"] = i
 
-    with job_lock:
-        if job_state["fail"]:
-            (out_dir / "falhas.txt").write_text(
-                "\n".join(job_state["fail"]), encoding="utf-8"
-            )
-        job_state["running"] = False
-        job_state["current"] = ""
-    log("Concluido.")
+        with job_lock:
+            if job_state["fail"]:
+                (out_dir / "falhas.txt").write_text(
+                    "\n".join(job_state["fail"]), encoding="utf-8"
+                )
+        log("Concluido.")
+    except Exception as e:
+        log(f"Erro inesperado, processo interrompido: {e}")
+    finally:
+        with job_lock:
+            job_state["running"] = False
+            job_state["current"] = ""
 
 
 @app.route("/")
@@ -179,4 +185,4 @@ def serve_download(folder, filename):
 if __name__ == "__main__":
     DOWNLOADS_ROOT.mkdir(exist_ok=True)
     print("Abra http://127.0.0.1:5000 no navegador")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)

@@ -121,7 +121,7 @@
 
   <div class="card">
     <label for="links">Links do Pinterest (um por linha)</label>
-    <textarea id="links" placeholder="https://www.pinterest.com/pin/111111111111111111/&#10;https://www.pinterest.com/pin/222222222222222222/&#10;https://pin.it/abc123"></textarea>
+    <textarea id="links" placeholder="Cole aqui os links reais dos seus pins, um por linha (exemplo de FORMATO, nao use este link: https://pin.it/abc123)"></textarea>
 
     <div class="row">
       <div class="field">
@@ -153,50 +153,86 @@
 
 <script>
 let polling = null;
+let pollFailures = 0;
 
 function fmtSize(bytes) {
   if (bytes > 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   return (bytes / 1024).toFixed(0) + " KB";
 }
 
+function resetToIdle(message) {
+  if (polling) clearInterval(polling);
+  polling = null;
+  document.getElementById('startBtn').disabled = false;
+  const statusEl = document.getElementById('statusText');
+  statusEl.textContent = message;
+  statusEl.style.color = 'var(--fail)';
+}
+
 async function startDownload() {
-  const links = document.getElementById('links').value;
+  const rawLinks = document.getElementById('links').value.trim();
   const output = document.getElementById('output').value;
   const btn = document.getElementById('startBtn');
+
+  if (!rawLinks) {
+    alert('Cole pelo menos um link do Pinterest antes de clicar em Baixar.');
+    return;
+  }
 
   btn.disabled = true;
   document.getElementById('progressCard').classList.remove('hidden');
   document.getElementById('resultCard').classList.add('hidden');
   document.getElementById('log').textContent = '';
+  const statusEl = document.getElementById('statusText');
+  statusEl.style.color = '';
+  statusEl.textContent = 'Preparando...';
+  pollFailures = 0;
 
-  const res = await fetch('/start', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({links, output})
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    alert(data.error || 'Erro ao iniciar.');
-    btn.disabled = false;
+  try {
+    const res = await fetch('/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({links: rawLinks, output})
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resetToIdle(data.error || 'Erro ao iniciar.');
+      return;
+    }
+  } catch (err) {
+    resetToIdle('Nao foi possivel falar com o servidor local. Confira se a janela preta (terminal) do "python app.py" ainda esta aberta.');
     return;
   }
   polling = setInterval(pollStatus, 1000);
 }
 
 async function pollStatus() {
-  const res = await fetch('/status');
-  const s = await res.json();
+  let s;
+  try {
+    const res = await fetch('/status');
+    s = await res.json();
+    pollFailures = 0;
+  } catch (err) {
+    pollFailures += 1;
+    if (pollFailures >= 4) {
+      resetToIdle('Perdeu a conexao com o servidor local. Confira se a janela do terminal ainda esta aberta e recarregue a pagina.');
+    }
+    return;
+  }
 
   const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
   document.getElementById('progressBar').style.width = pct + '%';
-  document.getElementById('statusText').textContent =
-    s.running ? `Baixando ${s.done + 1}/${s.total}` : (s.total ? 'Concluido' : 'Preparando...');
+  const statusEl = document.getElementById('statusText');
+  statusEl.style.color = '';
+  statusEl.textContent =
+    s.running ? `Baixando ${Math.min(s.done + 1, s.total)}/${s.total}` : (s.total ? 'Concluido' : 'Preparando...');
   document.getElementById('percentText').textContent = s.running ? (s.percent || '') : '';
   document.getElementById('log').textContent = (s.log || []).join('\n');
   document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
 
   if (!s.running && s.total > 0) {
     clearInterval(polling);
+    polling = null;
     document.getElementById('startBtn').disabled = false;
     document.getElementById('okCount').textContent = s.ok.length;
     document.getElementById('failCount').textContent = s.fail.length;
@@ -206,23 +242,27 @@ async function pollStatus() {
 }
 
 async function loadFiles() {
-  const res = await fetch('/files');
-  const data = await res.json();
-  const list = document.getElementById('fileList');
-  list.innerHTML = '';
-  (data.files || []).forEach(f => {
-    const li = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = `/downloads/${encodeURIComponent(data.folder)}/${encodeURIComponent(f.name)}`;
-    link.textContent = f.name;
-    link.target = '_blank';
-    const size = document.createElement('span');
-    size.className = 'size';
-    size.textContent = fmtSize(f.size);
-    li.appendChild(link);
-    li.appendChild(size);
-    list.appendChild(li);
-  });
+  try {
+    const res = await fetch('/files');
+    const data = await res.json();
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    (data.files || []).forEach(f => {
+      const li = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = `/downloads/${encodeURIComponent(data.folder)}/${encodeURIComponent(f.name)}`;
+      link.textContent = f.name;
+      link.target = '_blank';
+      const size = document.createElement('span');
+      size.className = 'size';
+      size.textContent = fmtSize(f.size);
+      li.appendChild(link);
+      li.appendChild(size);
+      list.appendChild(li);
+    });
+  } catch (err) {
+    // Falha ao listar arquivos nao deve travar a tela de resultado.
+  }
 }
 </script>
 </body>
