@@ -1,0 +1,4 @@
+# Cole aqui um link do Pinterest por linha.
+# Linhas em branco ou comecando com # sao ignoradas.
+# Exemplo:
+# https://www.pinterest.com/pin/123456789012345678/
