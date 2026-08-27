@@ -1,11 +1,13 @@
 # Pinterest Video Downloader
 
 Baixa varios videos do Pinterest de uma vez, salvando cada um numa pasta com o
-nome do video.
+nome do video. Vem com uma interface web local para colar os links e
+acompanhar o progresso pelo navegador.
 
 ## Instalacao
 
 ```bash
+cd pinterest-downloader
 pip install -r requirements.txt
 ```
 
@@ -16,34 +18,38 @@ audio e video em um unico .mp4):
 - Ubuntu/Debian: `sudo apt install ffmpeg`
 - Windows: baixe em https://ffmpeg.org/download.html e adicione ao PATH
 
-## Uso
-
-1. Abra o arquivo `links.txt` e cole um link do Pinterest por linha:
-
-   ```
-   https://www.pinterest.com/pin/111111111111111111/
-   https://www.pinterest.com/pin/222222222222222222/
-   https://pin.it/abc123
-   ```
-
-2. Rode o script:
-
-   ```bash
-   python download_pinterest.py
-   ```
-
-   Os videos vao para a pasta `downloads/`, cada um nomeado com o titulo do
-   pin (ex: `nome-do-video [id].mp4`).
-
-### Opcoes
+## Uso (app web local)
 
 ```bash
-# Usar outro arquivo de links e outra pasta de saida
-python download_pinterest.py meus_links.txt -o minha_pasta
-
-# Ler os links direto do terminal (um por linha, Ctrl+D para finalizar)
-python download_pinterest.py -
+python app.py
 ```
 
-Links invalidos ou que falharem nao interrompem o processo: eles ficam
-listados ao final em `downloads/falhas.txt`.
+Abra **http://127.0.0.1:5000** no navegador. Na pagina:
+
+1. Cole os links do Pinterest na caixa de texto (um por linha).
+2. Defina o nome da pasta de destino (opcional).
+3. Clique em **Baixar todos** e acompanhe a barra de progresso e o log em
+   tempo real.
+4. No final, a lista de videos baixados aparece com link para abrir/baixar
+   cada um direto do navegador.
+
+Os arquivos ficam salvos em `pinterest-downloader/downloads/<pasta>/`, cada
+um nomeado com o titulo do pin (ex: `nome-do-video [id].mp4`). Links que
+falharem nao interrompem o processo e ficam listados em `falhas.txt` dentro
+da mesma pasta.
+
+## Uso alternativo (linha de comando)
+
+Se preferir rodar sem abrir o navegador, o script `download_pinterest.py`
+faz a mesma coisa via terminal:
+
+```bash
+# edite o links.txt com um link por linha, depois:
+python download_pinterest.py
+
+# ou informe outro arquivo/pasta:
+python download_pinterest.py meus_links.txt -o minha_pasta
+
+# ou leia os links direto do terminal (Ctrl+D para finalizar):
+python download_pinterest.py -
+```
