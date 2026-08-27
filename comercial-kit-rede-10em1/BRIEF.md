@@ -74,26 +74,40 @@ show_marketing_studio(
   description = "Kit completo 10 em 1 para redes e TI: crimpador 3 em 1, testador de cabo, "
                 "descascador de fios, ferramenta de impacto, descascador multifuncional, "
                 "chave de fenda, chave Phillips, conectores RJ45, bota protetora e estojo "
-                "organizador. Compatível com CAT5, CAT5e e CAT6, RJ45 (8 pinos) e RJ11/12.",
+                "organizador. Compativel com CAT5, CAT5e e CAT6, RJ45 (8 pinos) e RJ11/12.",
   medias = [ {value: <media_id>, role: "image"}, ... ]
 )
 ```
-Seguir o `next_step` retornado.
+Seguir o `next_step` retornado e guardar o `product_id`.
 
-### Passo 3 — Gerar o vídeo
+### Passo 3 — Gerar o video
 ```
 generate_video(params = {
-  model:        "marketing_studio_video",
-  aspect_ratio: "9:16",
-  duration:     15,
-  use_unlim:    true,
-  prompt:       <ver seção 5>
+  model:          "marketing_studio_video",
+  mode:           "product_showcase",     # preset escolhido — ver secao 4.1
+  product_ids:    ["<product_uuid>"],     # plural; o servidor nao aceita product_id
+  aspect_ratio:   "9:16",
+  duration:       15,                     # faixa aceita pelo modelo: 12-15s
+  resolution:     "1080p",                # default do modelo e 720p
+  generate_audio: true,
+  use_unlim:      true,
+  prompt:         <ver secao 5>
 })
 ```
 
+### 4.1 — Preset (`mode`)
+
+Confirmado no catalogo do Marketing Studio:
+
+| Slug | Nome | Por que |
+|------|------|---------|
+| `product_showcase` | Product Showcase | **Primario.** Comercial focado no produto, sem creator falando — combina com o roteiro |
+| `tv_spot` | TV Spot | Alternativa mais classica de comercial, se quiser tom institucional |
+| `ugc_unboxing_asmr` | Unboxing ASMR | Alternativa: o click do crimpador e o encaixe no estojo rendem ASMR |
+
 ---
 
-## 5. Prompt do vídeo
+## 5. Prompt do video
 
 > Cinematic 15-second product commercial for a 10-in-1 network technician tool kit,
 > shot on a dark matte workbench with cool blue key light and warm rim light.
@@ -107,21 +121,33 @@ generate_video(params = {
 > Confident, precise, professional-grade energy. Smooth push-in camera moves,
 > crisp foley-driven pacing, no on-screen people beyond hands.
 
-**Texto em tela (PT-BR):** `KIT 10 EM 1` → `Crimpa, corta e decapa` → `CAT5 · CAT5e · CAT6` →
-`Organizado e pronto pra próxima` → `TUDO O QUE VOCÊ PRECISA`
+**Texto em tela (PT-BR):** `KIT 10 EM 1` -> `Crimpa, corta e decapa` -> `CAT5 - CAT5e - CAT6` ->
+`Organizado e pronto pra proxima` -> `TUDO O QUE VOCE PRECISA`
 
 ---
 
-## 6. Variações previstas
+## 6. Variacoes previstas
 
 - **9:16** — Reels / TikTok / Shorts (principal)
 - **16:9** — YouTube pre-roll / site
-- Corte de 6s para paid social, reaproveitando cenas 2–6s e o pack shot
+- Corte de 12s (minimo do modelo) para paid social, reaproveitando as cenas 2-6s e o pack shot
 
 ---
 
 ## Status
 
-Bloqueado no passo 1: a sessão do conector Higgsfield expirou
-(`balance`, `media_import_url` e `show_marketing_studio` retornaram erro de sessão).
-Reautorizar o conector Higgsfield no cliente MCP destrava o disparo — o restante já está definido acima.
+Bloqueado no passo 1: a sessao do conector Higgsfield expirou.
+
+Diagnostico (2 tentativas):
+
+| Chamada | Resultado |
+|---------|-----------|
+| `models_explore(marketing_studio_video)` | OK — leitura de catalogo, nao exige sessao |
+| `show_marketing_studio(action="presets")` | OK — leitura de catalogo, nao exige sessao |
+| `balance` | Sessao expirada |
+| `media_import_url` | Sessao expirada |
+| `show_marketing_studio(action="list")` | Sessao expirada |
+
+O servico esta no ar; o que falta e a autorizacao da conta. Reautorizar o conector Higgsfield
+no cliente MCP (remover e adicionar de novo, se so reconectar nao abrir o login) destrava o
+disparo — todo o resto acima ja esta definido e parametrizado.
