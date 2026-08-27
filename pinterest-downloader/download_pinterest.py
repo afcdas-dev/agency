@@ -35,7 +35,7 @@ def build_ydl_opts(out_dir: pathlib.Path) -> dict:
         "outtmpl": str(out_dir / "%(title).150B [%(id)s].%(ext)s"),
         "restrictfilenames": True,
         "windowsfilenames": True,
-        "format": "bv*+ba/b",
+        "format": "best/bv*+ba",
         "merge_output_format": "mp4",
         "noplaylist": True,
         "no_warnings": True,

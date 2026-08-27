@@ -71,7 +71,7 @@ def run_download(links: list[str], out_dir: pathlib.Path, folder: str) -> None:
         "outtmpl": str(out_dir / "%(title).150B [%(id)s].%(ext)s"),
         "restrictfilenames": True,
         "windowsfilenames": True,
-        "format": "bv*+ba/b",
+        "format": "best/bv*+ba",
         "merge_output_format": "mp4",
         "noplaylist": True,
         "no_warnings": True,
